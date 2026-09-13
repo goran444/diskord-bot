@@ -8,11 +8,18 @@ app = Flask(__name__)
 def sellapp_webhook():
     data = request.json
     
-    # Ovde SellApp šalje podatke (prilagođena polja gde kupac upisuje Hardware/Serial ID)
-    # Primer: preuzimamo hardware_id iz podataka koje je SellApp poslao
+    if not data:
+        return jsonify({'success': True, 'message': 'Prazan zahtev primljen'}), 200
+        
     try:
-        # Prilagodi naziv polja u zavisnosti kako si ga nazvao u SellApp-u
-        hardware_id = int(data.get('custom_fields', {}).get('hardware_id', 0))
+        # Proveravamo da li je ovo testni webhook sa SellApp-a (koji nema custom_fields)
+        custom_fields = data.get('custom_fields')
+        if not custom_fields or 'hardware_id' not in custom_fields:
+            print("Primljen testni webhook sa SellApp-a - sve radi!")
+            return jsonify({'success': True, 'message': 'Test webhook uspesno primljen'}), 200
+
+        # Pravi podaci od kupovine
+        hardware_id = int(custom_fields.get('hardware_id', 0))
         customer_email = data.get('customer_email')
         
         if not hardware_id:
@@ -21,8 +28,7 @@ def sellapp_webhook():
         # Generisanje licence pomoću formule iz license.py
         license_code = generate_license(hardware_id)
         
-        # Ovde možeš dodati kod da se license_code pošalje kupcu na e-mail ili Discord
-        print(T'{customer_email} je kupio licencu. Generisan kod: {license_code}')
+        print(f'{customer_email} je kupio licencu. Generisan kod: {license_code}')
         
         return jsonify({'success': True, 'license': license_code}), 200
         
