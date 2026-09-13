@@ -3,7 +3,6 @@ import asyncio
 import discord
 from aiohttp import web
 
-# Inicijalizacija Discord bota
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -12,7 +11,6 @@ client = discord.Client(intents=intents)
 async def on_ready():
     print(f'Bot je uspešno ulogovan kao {client.user}')
 
-# Web server za SellApp webhook
 async def handle_webhook(request):
     try:
         data = await request.json()
