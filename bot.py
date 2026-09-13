@@ -8,6 +8,9 @@ app = Flask(__name__)
 def sellapp_webhook():
     data = request.json
     
+    # OVO SMO DODALI: Štampamo ceo JSON paket u logove da vidiš strukturu
+    print("CEO JSON PAKET SA SELLAPPA:", data)
+    
     if not data:
         return jsonify({'success': True, 'message': 'Prazan zahtev primljen'}), 200
         
