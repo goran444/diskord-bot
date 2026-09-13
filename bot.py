@@ -11,6 +11,10 @@ client = discord.Client(intents=intents)
 async def on_ready():
     print(f'Bot je uspešno ulogovan kao {client.user}')
 
+# Dodajemo root rutu da Render i Cloudflare vide da je sajt živ
+async def handle_root(request):
+    return web.Response(text="Bot je aktivan i web server radi!", status=200)
+
 async def handle_webhook(request):
     try:
         data = await request.json()
@@ -22,6 +26,7 @@ async def handle_webhook(request):
 
 async def start_web_server():
     app = web.Application()
+    app.router.add_get('/', handle_root)  # <-- Ova linija rešava Render health check
     app.router.add_post('/webhook', handle_webhook)
     
     runner = web.AppRunner(app)
