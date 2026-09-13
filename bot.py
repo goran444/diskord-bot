@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, Response
 
 app = Flask(__name__)
 
@@ -7,52 +7,27 @@ app = Flask(__name__)
 def sellapp_webhook():
     data = request.json or {}
     
-    print("=== PRIMLJEN PODATAK SA SELLAPPA ===")
-    print("CEO JSON PAKET:", data)
-    
-    # Fiksni licencni kod za v1.0 skriptu
+    print("=== PRIMLJEN WEBHOOK SA SELLAPPA ===")
     LICENSE_CODE = "6432"
     
     try:
-        # 1. Čitamo iz additional_information ili custom_fields polja
-        hardware_id = None
-        
-        # Provera kroz additional_information
+        # Izvlačimo Hardware ID samo radi logova
         add_info = data.get('additional_information', [])
+        hw_id = "Nepoznat"
         if isinstance(add_info, list):
             for item in add_info:
                 if isinstance(item, dict) and item.get('label') == 'Zen Hardware Id':
-                    hardware_id = item.get('value')
+                    hw_id = item.get('value')
                     break
-
-        # Rezervna provera ako je u custom_fields
-        if not hardware_id and 'custom_fields' in data:
-            hardware_id = data.get('custom_fields', {}).get('hardware_id')
-
-        # Čitamo email kupca
-        customer_email = data.get('email') or data.get('customer_email', 'Nepoznat email')
-            
-        print(f"=== USPEH: Kupac ({customer_email}) | Hardware ID: {hardware_id} ===")
-        print(f"=== ŠALJEM LICENCNI KOD NA SELLAPP: {LICENSE_CODE} ===")
+                    
+        print(f"=== USPEH: Hardware ID: {hw_id} | Vraćam kod: {LICENSE_CODE} ===")
         
-        # Vraćamo odgovor u više formata radi kompatibilnosti sa SellApp-om
-        return jsonify({
-            'success': True,
-            'status': 'success',
-            'license': LICENSE_CODE,
-            'key': LICENSE_CODE,
-            'code': LICENSE_CODE,
-            'deliverable': LICENSE_CODE
-        }), 200
+        # SellApp kod dinamičkih webhook-ova ponekad očekuje čist tekst (plain text) kao odgovor
+        return Response(LICENSE_CODE, mimetype='text/plain', status=200)
         
     except Exception as e:
-        print(f"Greška u obradi webhooka: {str(e)}")
-        # Vraćamo 200 sa kodom 6432 čak i ako izbije greška u parsiranju
-        return jsonify({
-            'success': True, 
-            'license': LICENSE_CODE, 
-            'key': LICENSE_CODE
-        }), 200
+        print(f"Greška: {str(e)}")
+        return Response(LICENSE_CODE, mimetype='text/plain', status=200)
 
 @app.route('/')
 def home():
