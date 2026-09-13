@@ -11,7 +11,6 @@ client = discord.Client(intents=intents)
 async def on_ready():
     print(f'Bot je uspešno ulogovan kao {client.user}')
 
-# Dodajemo root rutu da Render i Cloudflare vide da je sajt živ
 async def handle_root(request):
     return web.Response(text="Bot je aktivan i web server radi!", status=200)
 
@@ -26,7 +25,7 @@ async def handle_webhook(request):
 
 async def start_web_server():
     app = web.Application()
-    app.router.add_get('/', handle_root)  # <-- Ova linija rešava Render health check
+    app.router.add_get('/', handle_root)
     app.router.add_post('/webhook', handle_webhook)
     
     runner = web.AppRunner(app)
@@ -43,8 +42,20 @@ async def main():
         print("Greška: DISCORD_TOKEN nije podešen!")
         return
 
+    # Pokrećemo web server odmah da Render ne pravi problem
     await start_web_server()
-    await client.start(token)
+    
+    # Mala pauza od 5 sekundi da se izbegne Discord rate limit (429 error)
+    print("Čekam 5 sekundi pre povezivanja sa Discord-om...")
+    await asyncio.sleep(5)
+
+    try:
+        await client.start(token)
+    except discord.errors.HTTPException as e:
+        if e.status == 429:
+            print("Greška 429: Previše zahteva ka Discord-u. Sačekaj 10-15 minuta da ban sa IP adrese istekne.")
+        else:
+            raise e
 
 if __name__ == '__main__':
     asyncio.run(main())
