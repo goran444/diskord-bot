@@ -8,35 +8,45 @@ app = Flask(__name__)
 def sellapp_webhook():
     data = request.json
     
-    # OVO SMO DODALI: Štampamo ceo JSON paket u logove da vidiš strukturu
     print("CEO JSON PAKET SA SELLAPPA:", data)
     
     if not data:
         return jsonify({'success': True, 'message': 'Prazan zahtev primljen'}), 200
         
     try:
-        # Proveravamo da li je ovo testni webhook sa SellApp-a (koji nema custom_fields)
-        custom_fields = data.get('custom_fields')
-        if not custom_fields or 'hardware_id' not in custom_fields:
+        # 1. Čitamo iz additional_information ili custom_fields polja
+        hardware_id = None
+        
+        # Provera kroz additional_information (SellApp format sa slike)
+        add_info = data.get('additional_information', [])
+        if isinstance(add_info, list):
+            for item in add_info:
+                if isinstance(item, dict) and item.get('label') == 'Zen Hardware Id':
+                    hardware_id = item.get('value')
+                    break
+
+        # Rezervna provera ako je u custom_fields
+        if not hardware_id and 'custom_fields' in data:
+            hardware_id = data.get('custom_fields', {}).get('hardware_id')
+
+        # Provera da li je ovo samo testni webhook
+        if not hardware_id:
             print("Primljen testni webhook sa SellApp-a - sve radi!")
             return jsonify({'success': True, 'message': 'Test webhook uspesno primljen'}), 200
 
-        # Pravi podaci od kupovine
-        hardware_id = int(custom_fields.get('hardware_id', 0))
-        customer_email = data.get('customer_email', 'Nepoznat email')
-        
-        if not hardware_id:
-            return jsonify({'error': 'Hardware ID nedostaje'}), 400
+        # Čitamo email kupca
+        customer_email = data.get('email') or data.get('customer_email', 'Nepoznat email')
             
-        # Generisanje licence pomoću formule iz license.py
+        # Generisanje licence (zahvaljujući v1.0 logici uvek vraća 6432)
         license_code = generate_license(hardware_id)
         
         print(f'{customer_email} je kupio licencu. Generisan kod: {license_code}')
         
-        # Vraćamo licencu nazad SellApp-u da je on uruči kupcu
+        # Vraćamo uspešan odgovor SellApp-u
         return jsonify({'success': True, 'license': license_code}), 200
         
     except Exception as e:
+        print(f"Greška u obradi webhooka: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/')
